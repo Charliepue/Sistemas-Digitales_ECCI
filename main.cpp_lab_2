@@ -1,0 +1,409 @@
+#include "mbed.h"
+#include <cstdint>
+
+// Función de espera en segundos
+void wait(float seconds) {
+    thread_sleep_for(seconds * 1000); // Convertir segundos a milisegundos
+}
+
+// Definición de buses y salidas
+BusOut LEDS(PB_9,PB_8,PB_7,PB_6,PB_5,PB_4,PB_3,PA_15,PA_12,PA_11,PA_10,PA_9,PA_8,PB_15,PB_14,PB_13);
+BusOut LEDS_AA(PB_4,PB_3,PA_15,PB_6,PB_7,PB_8,PB_9,PB_5,PA_12,PA_8,PB_15,PB_14,PB_13,PA_9,PA_10,PA_11);
+BusOut LEDS_BA(PB_5,PB_4,PB_8,PB_7,PB_6,PB_3);
+BusOut LEDS_BB(PA_9,PA_10,PB_14,PB_15,PA_8,PA_11);
+BusOut LEDS_CA(PB_6,PB_7,PB_8,PB_9,PB_5,PA_12,PA_8);
+BusOut LEDS_CB(PB_6,PB_7,PB_3,PB_4,PA_11,PA_12,PA_8);
+BusOut LEDS_CC(PB_6,PB_7,PB_3,PA_10,PA_11,PA_12,PA_8);
+BusOut LEDS_CD(PB_6,PA_15,PA_9,PB_13,PB_14,PB_15,PA_8);
+BusOut LEDS_DA(PB_15,PA_12,PB_5,PB_8,PB_7,PA_15,PA_9,PB_14,PA_11,PB_4,PB_3,PA_10);
+BusOut LEDS_EA(PB_7, PA_15, PA_10, PB_13);
+BusOut LEDS_EB(PB_8, PB_5, PA_11, PA_8);
+BusOut LEDS_EC(PB_14, PA_9, PB_3, PB_6);
+BusOut LEDS_ED(PB_15, PA_12, PB_4, PB_9);
+BusOut LCD(PA_1, PA_2, PA_3, PA_4, PA_5, PA_6, PA_7, PB_0);
+DigitalOut ENABLES(PB_1);
+DigitalOut RS(PB_10);
+BusIn INTERRUPTOR(PC_13,PC_14,PC_15,PA_0);
+
+// Prototipos de funciones
+void R_I(uint8_t COMANDO);
+void R_D(uint8_t CARACTER);
+void INICIALIZAR(void);
+void Limpiar_LCD(void);
+uint8_t Bandera=255;
+void F1(void);
+void F2(void);
+void F3(void);
+void F4(void);
+void F5(void);
+void Mensaje1(void);
+void Mensaje2(void);
+void Mensaje3(void);
+void Mensaje4(void);
+void Mensaje5(void);
+
+int main(void) {
+    INICIALIZAR();
+
+    LEDS = 0;
+    while (1) {
+
+        switch(INTERRUPTOR) 
+        {
+            case 1: F1(); break;
+            case 2: F2(); break;
+            case 3: F3(); break;
+            case 4: F4(); break;
+            case 5: F5(); break;
+            default: LEDS = 0; break;
+        }
+    }
+}
+        
+void R_I(uint8_t COMANDO) {
+    RS = 0;          // Modo comando
+    ENABLES = 0;     // Habilitar el envío
+    LCD = COMANDO;   // Enviar comando a la LCD
+    ENABLES = 1;     // Habilitar el LCD
+    wait(0.01);      // Pequeño retraso
+    ENABLES = 0;     // Deshabilitar el LCD
+}
+
+void R_D(uint8_t CARACTER) {
+    RS = 1;          // Modo datos
+    ENABLES = 0;     // Habilitar el envío
+    LCD = CARACTER;  // Enviar carácter a la LCD
+    ENABLES = 1;     // Habilitar el LCD
+    wait(0.01);      // Pequeño retraso
+    ENABLES = 0;     // Deshabilitar el LCD
+}
+
+void Limpiar_LCD(void) {
+    R_I(0b00000001); // Comando de borrado de pantalla
+    wait(0.02);      // Esperar para que el borrado se complete
+}
+
+// Función para mostrar el mensaje en el orden específico
+void Mensaje1() {
+
+    uint8_t i = 0;
+
+    if (Bandera != 0) {
+    // Direcciones en la LCD para las dos filas en decimal
+    char POS[8] = {128, 192, 129, 193, 130, 194, 131, 195}; 
+    char Letras[8] = {'H', 'E', 'O', 'C', 'L', 'C', 'A', 'I'}; // Letras a mostrar
+    R_I(0b00001100);
+    
+    for (i = 0; i < 8; i++) {
+        R_I(POS[i]);  // Cambiar la posición del cursor en la LCD
+        R_D(Letras[i]); // Imprimir la letra
+        wait(1.0);    // Esperar 1 segundo entre cada letra
+    }
+
+            // Finalizar operación del dispositivo
+        R_I(1);
+    
+        // Cambiar el valor de Bandera para indicar que el mensaje ya fue mostrado
+        Bandera = 0;
+    }
+}
+
+// Función para mostrar el mensaje en el orden específico
+void Mensaje2() {
+
+    uint8_t i = 0;
+
+    if (Bandera != 1) {
+    // Direcciones en la LCD para las dos filas en decimal
+    char POS[14] = {128, 136, 202, 131, 135, 206, 129, 134, 205, 133, 203, 130, 204, 132}; 
+    char Letras[14] = {'S', 'E', 'D', 'P', 'T', 'E', 'E', 'N', 'L', 'E', 'O', 'R', 'B', 'I'};
+    
+    R_I(0b00001100);
+     // Letras a mostrar
+
+    for (i = 0; i < 14; i++) {
+        R_I(POS[i]);  // Cambiar la posición del cursor en la LCD
+        R_D(Letras[i]); // Imprimir la letra
+        wait(1.0);    // Esperar 1 segundo entre cada letra
+    }
+
+                // Finalizar operación del dispositivo
+        R_I(1);
+    
+        // Cambiar el valor de Bandera para indicar que el mensaje ya fue mostrado
+        Bandera = 1;
+    }
+}
+
+// Función para mostrar el mensaje en el orden específico
+void Mensaje3() {
+
+    int8_t i = 0;
+      if (Bandera != 2) {    
+    // Direcciones en la LCD para las dos filas en decimal
+    char POS[13] = {194, 138, 198, 142, 197, 135, 140, 196, 136, 141, 195, 137, 139}; 
+    char Letras[13] = {'M', 'G', 'O', 'L', 'D', 'D', 'N', 'N', 'I', 'A', 'U', 'A', 'O'}; // Letras a mostrar
+
+        R_I(0b00001100);
+     // Letras a mostrar
+    
+
+    for (i = 0; i < 13; i++) {
+        R_I(POS[i]);  // Cambiar la posición del cursor en la LCD
+        R_D(Letras[i]); // Imprimir la letra
+        wait(1.0);    // Esperar 1 segundo entre cada letra
+    }
+
+                    // Finalizar operación del dispositivo
+        R_I(1);
+    
+        // Cambiar el valor de Bandera para indicar que el mensaje ya fue mostrado
+        Bandera = 2;
+}
+
+}
+
+// Función para mostrar el mensaje en el orden específico
+void Mensaje4() {
+
+    int8_t i = 0;
+      if (Bandera != 3) {    
+    // Direcciones en la LCD para las dos filas en decimal
+    char POS[10] = {130, 128, 138, 129, 139, 131, 134, 140, 132, 133}; 
+    char Letras[10] = {'Y', 'D', 'T', 'A', 'Q', 'A', 'N', 'M', 'R', 'I',}; // Letras a mostrar
+
+        R_I(0b00001100);
+     // Letras a mostrar
+    
+
+    for (i = 0; i < 10; i++) {
+        R_I(POS[i]);  // Cambiar la posición del cursor en la LCD
+        R_D(Letras[i]); // Imprimir la letra
+        wait(1.0);    // Esperar 1 segundo entre cada letra
+    }
+
+                    // Finalizar operación del dispositivo
+        R_I(1);
+    
+        // Cambiar el valor de Bandera para indicar que el mensaje ya fue mostrado
+        Bandera = 3;
+}
+
+}
+
+// Función para mostrar el mensaje en el orden específico
+void Mensaje5() {
+
+    int8_t i = 0;
+      if (Bandera != 4) {    
+    // Direcciones en la LCD para las dos filas en decimal
+    char POS[12] = {133, 201, 130, 205, 131, 204, 132, 202, 136, 203, 135, 134}; 
+    char Letras[12] = {'C', 'F', 'P', 'O', 'E', 'T', 'S', 'R', 'O', 'I', 'D', 'A'}; // Letras a mostrar
+
+        R_I(0b00001100);
+     // Letras a mostrar
+    
+
+    for (i = 0; i < 12; i++) {
+        R_I(POS[i]);  // Cambiar la posición del cursor en la LCD
+        R_D(Letras[i]); // Imprimir la letra
+        wait(1.0);    // Esperar 1 segundo entre cada letra
+    }
+
+                    // Finalizar operación del dispositivo
+        R_I(1);
+    
+        // Cambiar el valor de Bandera para indicar que el mensaje ya fue mostrado
+        Bandera = 4;
+}
+
+}
+
+
+void F1(void) {
+
+    Limpiar_LCD();  
+    // Mostrar mensaje en el orden especificado
+    Mensaje1();
+    
+    wait(1); // Esperar 2 segundos antes de iniciar la secuencia de LEDs
+    
+    // Secuencia de encendido de LEDs
+    uint16_t AA = 0;
+    uint8_t i = 0;
+    LEDS_AA = 0;
+    wait(0.4); // Esperar 400 milisegundos
+    AA = 1;
+    for (i = 0; i < 16; i++) {
+        LEDS_AA = AA;
+        wait(0.4); // Esperar 400 milisegundos
+        AA = (AA << 1 | 1); // Encender LED en la posición 1 y mantener los anteriores encendidos     
+    }
+    AA = 65534;
+    for (i = 0; i < 16; i++) {
+        LEDS_AA = AA;
+        wait(0.4); // Esperar 400 milisegundos
+        AA = AA << 1; // Apagar LED en la posición (15 - i) manteniendo los otros encendidos
+    }
+}
+
+
+void F2(void) 
+{
+    Limpiar_LCD();  
+    // Mostrar mensaje en el orden especificado
+    Mensaje2();
+    
+    wait(1); // Esperar 2 segundos antes de iniciar la secuencia de LEDs
+    // Secuencia de encendido de LEDs
+    uint8_t i = 0;
+    uint8_t ZZ = 0x01;
+    LEDS_BA = LEDS_BB = ZZ;
+    ZZ = 1;
+    for (i = 0; i < 6; i++) 
+    {
+        LEDS_BA = ZZ;
+        LEDS_BB = ZZ;
+        ZZ = (ZZ << 1 | 1); 
+        wait(0.4); // Esperar 400 milisegundos
+    }
+    ZZ = 31;
+    for (i = 0; i < 5; i++)
+    {
+        LEDS_BA = ZZ;
+        LEDS_BB = ZZ;           
+        wait(0.4); // Esperar 400 milisegundos
+        ZZ = ZZ >> 1;
+    }
+        wait(0.2);
+    LEDS_BA=LEDS_BB=0;
+}
+
+// Función F3
+void F3(void) 
+{
+    Limpiar_LCD();  
+    // Mostrar mensaje en el orden especificado
+    Mensaje3();
+    
+    wait(1); // Esperar 2 segundos antes de iniciar la secuencia de LEDs
+    // Secuencia de encendido de LEDs
+    uint16_t AA = 0;
+    uint8_t i = 0;
+    LEDS_CA = LEDS_CB = LEDS_CC = LEDS_CD = 0;
+    AA = 1;
+    for (i = 0; i < 7; i++)
+    {
+        LEDS_CA = AA;
+        LEDS_CB = AA;
+        LEDS_CC = AA;
+        LEDS_CD = AA;
+        wait(0.4);
+        AA = AA << 1 | 1;  
+    }
+    AA = 63;
+    for (i = 0; i < 7; i++)
+    {   
+        LEDS_CA = AA;
+        LEDS_CB = AA;
+        LEDS_CC = AA;
+        LEDS_CD = AA;
+        wait(0.4);
+        AA = AA >> 1;  
+    }
+}
+
+// Función F4
+void F4(void) 
+{
+
+    Limpiar_LCD();  
+    // Mostrar mensaje en el orden especificado
+    Mensaje4();
+    
+    wait(1); // Esperar 2 segundos antes de iniciar la secuencia de LEDs
+    // Secuencia de encendido de LEDs
+    
+    uint16_t AA = 0;
+    uint8_t i = 0;
+    LEDS_DA = 0;
+    AA = 1;
+
+   for (i = 0; i < 12; i++)
+    {
+      LEDS_DA = AA;
+    wait(0.4);
+    AA = AA << 1 | 1;
+    }
+
+    AA = 4095;
+   for (i = 0; i < 12; i++)
+   {
+    LEDS_DA = AA;
+    wait(0.4);
+    AA = AA >> 1;
+   }
+}
+
+// Función F5
+void F5(void) 
+{
+
+    Limpiar_LCD();  
+    // Mostrar mensaje en el orden especificado
+    Mensaje5();
+    
+    wait(1); // Esperar 2 segundos antes de iniciar la secuencia de LEDs
+    // Secuencia de encendido de LEDs
+
+    uint8_t AA = 0;
+    uint8_t ZZ = 0;
+    uint8_t i = 0;
+    LEDS_EA = 0;
+    LEDS_EB = 0;
+    LEDS_EC = 0;
+    LEDS_ED = 0;
+    AA = 1;
+    for (i = 0; i < 4; i++)
+    {
+      LEDS_EA = AA;
+      LEDS_EB = AA;
+      wait(0.4);
+      AA = AA << 1 | 1;
+    }
+
+    LEDS_EA = 0;
+    LEDS_EB = 0;
+    wait(0.4);
+    ZZ = 1;
+
+    for (i = 0; i < 4; i++)
+    {
+      LEDS_EC = ZZ;
+      LEDS_ED = ZZ;
+      wait(0.4);
+      ZZ = ZZ << 1 | 1;
+    }
+
+      ZZ = 0;
+      wait(0.4);
+      
+}
+
+void INICIALIZAR(void)
+{
+    wait(0.5);
+    R_I(0b00110000);
+
+    wait(0.5);
+    R_I(0b00110000);
+    
+    wait(0.5);
+    R_I(0b00110000);
+
+    R_I(0b00111000);
+    R_I(0b00001111);
+    R_I(0b00000001);    
+    
+}
+
