@@ -1,0 +1,149 @@
+#include "mbed.h"
+#include <cctype>   // Para funciones isalpha e isdigit
+#include <cstring>  // Para funciones de manejo de cadenas
+
+// Configuración de los puertos seriales
+UnbufferedSerial bluetoothPC(PA_2, PA_3, 9600);    // Comunicación con el PC
+UnbufferedSerial bluetoothCel(PB_10, PB_11, 9600); // Comunicación con el celular
+
+// Definición de habitaciones y contraseñas
+const char* HABITACIONES[] = {"101", "201", "301"};
+char CLAVES[3][5] = {""};  // Las contraseñas se inicializan vacías
+
+// Declaración de las funciones utilizadas
+void escribir_cadena(UnbufferedSerial &serial, const char *cadena);
+void leer_cadena(UnbufferedSerial &serial, char *buffer, int size);
+bool validar_contrasena(const char* contrasena);
+void configurarContrasenas();
+void manejoPC();
+void manejoCelular();
+
+// Función para escribir una cadena de caracteres al serial
+void escribir_cadena(UnbufferedSerial &serial, const char *cadena) {
+    serial.write(cadena, strlen(cadena));
+}
+
+// Función para leer una cadena de caracteres del serial con espera activa
+void leer_cadena(UnbufferedSerial &serial, char *buffer, int size) {
+    int i = 0;
+    char c;
+    while (i < size - 1) {
+        if (serial.readable() && serial.read(&c, 1) == 1) {
+            if (c == '\n' || c == '\r') {
+                break;  // Salir si se recibe un salto de línea o retorno de carro
+            }
+            buffer[i++] = c;
+        }
+    }
+    buffer[i] = '\0';  // Terminar la cadena con un carácter nulo
+}
+
+// Función para validar que la contraseña tenga el formato correcto
+bool validar_contrasena(const char* contrasena) {
+    if (strlen(contrasena) != 4) {
+        return false;  // Debe tener exactamente 4 caracteres
+    }
+    // Validar formato: letra, número, letra, número y caracteres no repetidos
+    if (!isalpha(contrasena[0]) || !isdigit(contrasena[1]) || 
+        !isalpha(contrasena[2]) || !isdigit(contrasena[3])) {
+        return false;
+    }
+    // Verificar que las letras y números no se repitan
+    if (contrasena[0] == contrasena[2] || contrasena[1] == contrasena[3]) {
+        return false;
+    }
+    return true;
+}
+
+// Función para manejar la sincronización y validación de habitación desde el PC
+void manejoPC() {
+    escribir_cadena(bluetoothPC, "Esperando sincronización desde el PC (envíe 'A')...\n");
+    char caracter;
+    do {
+        bluetoothPC.read(&caracter, 1);
+    } while (caracter != 'A');
+    escribir_cadena(bluetoothPC, "Sincronización con PC exitosa.\n");
+}
+
+// Función para configurar las contraseñas de las habitaciones desde el PC
+void configurarContrasenas() {
+    escribir_cadena(bluetoothPC, "Bienvenidos al hotel Villa Suesca\n");  // Mensaje de bienvenida
+    for (int i = 0; i < 3; ++i) {
+        bool contrasenaValida = false;
+        while (!contrasenaValida) {
+            escribir_cadena(bluetoothPC, "\nIngrese una contraseña para la habitación ");
+            escribir_cadena(bluetoothPC, HABITACIONES[i]);
+            escribir_cadena(bluetoothPC, " (formato: Letra-Número-Letra-Número): ");
+            char contrasena[5];
+            leer_cadena(bluetoothPC, contrasena, sizeof(contrasena));
+
+            if (validar_contrasena(contrasena)) {
+                strcpy(CLAVES[i], contrasena);
+                contrasenaValida = true;
+                escribir_cadena(bluetoothPC, "Contraseña guardada correctamente.\n");
+            } else {
+                escribir_cadena(bluetoothPC, "Contraseña inválida. Intente nuevamente.\n");
+            }
+        }
+    }
+}
+
+// Función para manejar la sincronización y validación de habitación desde el celular
+void manejoCelular() {
+    escribir_cadena(bluetoothCel, "Esperando sincronización desde el celular (envíe 'B')...\n");
+    char caracter;
+    do {
+        bluetoothCel.read(&caracter, 1);
+    } while (caracter != 'B');
+    escribir_cadena(bluetoothCel, "Sincronización con celular exitosa.\n");
+
+    char habitacion[4];
+    char contrasena[5];
+    bool habitacionValida = false;
+
+    // Solicitar habitación al celular
+    escribir_cadena(bluetoothCel, "\nSeleccione una habitación (101, 201, 301): ");
+    while (!habitacionValida) {
+        leer_cadena(bluetoothCel, habitacion, sizeof(habitacion));
+        for (int i = 0; i < 3; ++i) {
+            if (strcmp(habitacion, HABITACIONES[i]) == 0) {
+                habitacionValida = true;
+                escribir_cadena(bluetoothCel, "Habitación seleccionada: ");
+                escribir_cadena(bluetoothCel, habitacion);
+                escribir_cadena(bluetoothCel, "\n");
+                break;
+            }
+        }
+        if (!habitacionValida) {
+            escribir_cadena(bluetoothCel, "Habitación inválida. Intente nuevamente: ");
+        }
+    }
+
+    // Solicitar contraseña al celular
+    escribir_cadena(bluetoothCel, "Ingrese la contraseña para la habitación seleccionada: ");
+    leer_cadena(bluetoothCel, contrasena, sizeof(contrasena));
+
+    // Validar la contraseña ingresada
+    bool contrasenaValida = false;
+    for (int i = 0; i < 3; ++i) {
+        if (strcmp(habitacion, HABITACIONES[i]) == 0 && strcmp(contrasena, CLAVES[i]) == 0) {
+            contrasenaValida = true;
+            break;
+        }
+    }
+
+    if (contrasenaValida) {
+        escribir_cadena(bluetoothCel, "Acceso permitido.\n");
+        escribir_cadena(bluetoothPC, "Acceso permitido desde el celular.\n");
+    } else {
+        escribir_cadena(bluetoothCel, "Acceso denegado.\n");
+        escribir_cadena(bluetoothPC, "Acceso denegado desde el celular.\n");
+    }
+}
+
+// Programa principal
+int main() {
+    manejoPC();  // Sincronizar primero con el PC
+    configurarContrasenas();  // Luego configurar contraseñas
+    manejoCelular();  // Finalmente, manejar celular
+}
