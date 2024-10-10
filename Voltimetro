@@ -1,0 +1,53 @@
+#include "mbed.h"
+
+// Configuración de comunicación por puerto serie
+UnbufferedSerial SERIE(PA_2, PA_3); // Pines de TX y RX
+
+// Entrada para lectura analógica
+AnalogIn ADC(PA_1);
+
+// Prototipo de funciones
+void LEER_VOLTAJE(void);
+
+// Variables globales
+float voltaje_real; // Valor de voltaje real
+float auxiliar; // Variable auxiliar para cálculos
+int parte_entera = 0, parte_decimal = 0; // Componentes de la medición
+
+int main(void) 
+{
+    while (true) 
+    {
+        LEER_VOLTAJE();
+    }
+}
+
+void LEER_VOLTAJE(void) 
+{
+    uint8_t contador;
+    int longitud = 0;
+    int posicion = 0;
+
+    voltaje_real = ADC.read(); // Lee el valor analógico
+    voltaje_real = voltaje_real * 3.3; // Convertir a voltaje real para un rango de 0-3.3V
+    auxiliar = voltaje_real * 100; // Escala el valor para obtener parte decimal
+    parte_entera = (int)auxiliar / 100; // Extrae la parte entera del voltaje
+    parte_decimal = (int)auxiliar % 100; // Extrae la parte decimal
+
+    // Envío del valor de voltaje a través de la interfaz serie
+    char buffer[100];
+    longitud = sprintf(buffer, "\n\r El Voltaje medido es:  %i.%02i", parte_entera, parte_decimal);
+    posicion = 0;
+
+    do
+    {
+        if (SERIE.writeable())
+        {
+            SERIE.write(&buffer[posicion], 1);
+            posicion++;
+        }
+
+    } while (posicion < longitud);
+    
+    ThisThread::sleep_for(1s);
+}
