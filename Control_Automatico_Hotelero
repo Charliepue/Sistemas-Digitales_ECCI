@@ -173,3 +173,5 @@ int main() {
     manejoPC();  // Sincronizar primero con el PC
     configurarContrasenas();  // Luego configurar contraseñas
     manejoCelular();  // Finalmente
+}
+
