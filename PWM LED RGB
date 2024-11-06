@@ -1,0 +1,141 @@
+#include "mbed.h"
+
+// PWM para control de colores RGB
+PwmOut R(PB_15);
+PwmOut G(PB_14);
+PwmOut B(PB_13);
+
+// Entradas y LCD
+DigitalIn Pulsador(PA_0);
+BusOut DATOS(PA_10, PA_11, PA_12, PA_15, PB_3, PB_4, PB_5, PB_6);
+DigitalOut ENABLES(PC_14);
+DigitalOut RS(PC_15);
+
+void R_I(uint8_t COMANDO);
+void R_D(uint8_t CARACTER);
+void INICIALIZAR();
+void LIMPIAR();
+void Mensaje();
+void Enter();
+void ConfigurarColor(float r_val, float g_val, float b_val, const char* nombre, const char* valores);
+
+// Variables globales
+uint8_t Color = 0;
+char CADENA[500];
+
+// Función principal
+int main() {
+    INICIALIZAR();
+    Mensaje();
+
+    while (1) {
+        Enter();
+        R_I(1);
+
+        switch (Color) {
+            case 0: ConfigurarColor(1.0, 0.40, 0.0, "AMARILLO", "R100 G059 B000"); break;
+            case 1: ConfigurarColor(1.0, 0.1, 0.0, "NARANJA", "R100 G010 B000"); break;
+            case 2: ConfigurarColor(1.0, 0.0, 0.0, "ROJO", "R100 G000 B000"); break;
+            case 3: ConfigurarColor(1.0, 0.0, 0.35, "FUCSIA", "R100 G000 B035"); break;
+            case 4: ConfigurarColor(1.0, 0.0, 0.5, "ROSADO", "R100 G000 B050"); break;
+            case 5: ConfigurarColor(0.5, 0.0, 0.5, "VIOLETA", "R050 G000 B050"); break;
+            case 6: ConfigurarColor(0.0, 0.0, 1.0, "AZUL", "R000 G000 B100"); break;
+            case 7: ConfigurarColor(0.0, 0.5, 1.0, "CERULEO", "R000 G050 B100"); break;
+            case 8: ConfigurarColor(0.0, 1.0, 1.0, "CIAN", "R000 G100 B100"); break;
+            case 9: ConfigurarColor(0.0, 1.0, 0.5, "VERDECIAN", "R000 G100 B050"); break;
+            case 10: ConfigurarColor(0.0, 1.0, 0.0, "VERDE", "R000 G100 B000"); break;
+            case 11: ConfigurarColor(0.5, 1.0, 0.0, "LIMA", "R050 G100 B000"); break;
+            case 12: ConfigurarColor(1.0, 1.0, 1.0, "BLANCO", "R100 G100 B100"); break;
+            case 13: ConfigurarColor(0.0, 0.0, 0.0, "NEGRO", "R000 G000 B000"); Color = 0; break; // Ausencia de luz
+            default: Color = 0; break;
+        }
+        Color++;
+    }
+}
+
+// Función para configurar el color y mostrar el nombre y valores en la LCD
+void ConfigurarColor(float r_val, float g_val, float b_val, const char* nombre, const char* valores) {
+    R.period_ms(2); R.write(r_val);
+    G.period_ms(2); G.write(g_val);
+    B.period_ms(2); B.write(b_val);
+
+    LIMPIAR();
+    uint8_t INDICE;
+    uint8_t LONGITUD = sprintf(CADENA, "%s", valores);
+    
+    R_I(129); // Posición primer renglón, primer caracter
+    for (INDICE = 0; INDICE < LONGITUD; INDICE++) {  // Cambiado a '<' en lugar de '<='
+        R_D(CADENA[INDICE]);
+        ThisThread::sleep_for(50ms);
+    }
+    
+    R_I(196); // Posición segundo renglón, primer caracter
+    LONGITUD = sprintf(CADENA, "%s", nombre);
+    for (INDICE = 0; INDICE < LONGITUD; INDICE++) {  // Cambiado a '<' en lugar de '<='
+        R_D(CADENA[INDICE]);
+        ThisThread::sleep_for(50ms);
+    }
+}
+
+// Configuración y funciones de la LCD
+void R_I(uint8_t COMANDO) {
+    RS = 0;
+    ENABLES = 0;
+    DATOS = COMANDO;
+    ENABLES = 1;
+    ThisThread::sleep_for(1ms);
+    ENABLES = 0;
+    ThisThread::sleep_for(2ms);
+}
+
+void R_D(uint8_t CARACTER) {
+    RS = 1;
+    ENABLES = 0;
+    DATOS = CARACTER;
+    ENABLES = 1;
+    ThisThread::sleep_for(1ms);
+    ENABLES = 0;
+    ThisThread::sleep_for(2ms);
+}
+
+void INICIALIZAR() {
+    ThisThread::sleep_for(50ms);
+    R_I(0b00110000);
+    ThisThread::sleep_for(25ms);
+    R_I(0b00110000);
+    ThisThread::sleep_for(1ms);
+    R_I(0b00110000);
+    R_I(0b00111000); // Interfaz 8 bits, 2 líneas
+    R_I(0b00001100); // Sin cursor, sin parpadeo
+    R_I(0b00000001); // Limpiar display
+}
+
+void LIMPIAR() {
+    for (int i = 0; i < 50; i++) CADENA[i] = '\0';
+}
+
+void Mensaje() {
+    R_I(128); // Inicio de LCD
+    const char* msg1 = "Sistem RGB Ready";
+    const char* msg2 = "Carlos y Michael";
+    uint8_t LONGITUD = sprintf(CADENA, "%s", msg1);
+    for (uint8_t i = 0; i < LONGITUD; i++) {
+        R_D(CADENA[i]);
+        ThisThread::sleep_for(50ms);
+    }
+
+    R_I(192); // Segunda línea de LCD
+    LONGITUD = sprintf(CADENA, "%s", msg2);
+    for (uint8_t i = 0; i < LONGITUD; i++) {
+        R_D(CADENA[i]);
+        ThisThread::sleep_for(50ms);
+    }
+}
+
+// Función para controlar la entrada del pulsador
+void Enter() {
+    while (Pulsador == 1) {}
+    ThisThread::sleep_for(40ms);
+    while (Pulsador == 0) {}
+    ThisThread::sleep_for(40ms);
+}
