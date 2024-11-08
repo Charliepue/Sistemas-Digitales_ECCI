@@ -33,11 +33,11 @@ int main() {
         R_I(1);
 
         switch (Color) {
-            case 0: ConfigurarColor(1.0, 0.40, 0.0, "AMARILLO", "R100 G059 B000"); break;
+            case 0: ConfigurarColor(1.0, 0.3, 0.0, "AMARILLO", "R100 G030 B000"); break;
             case 1: ConfigurarColor(1.0, 0.1, 0.0, "NARANJA", "R100 G010 B000"); break;
             case 2: ConfigurarColor(1.0, 0.0, 0.0, "ROJO", "R100 G000 B000"); break;
-            case 3: ConfigurarColor(1.0, 0.0, 0.35, "FUCSIA", "R100 G000 B035"); break;
-            case 4: ConfigurarColor(1.0, 0.0, 0.5, "ROSADO", "R100 G000 B050"); break;
+            case 3: ConfigurarColor(0.9, 0.0, 0.4, "FUCSIA", "R090 G000 B040"); break;
+            case 4: ConfigurarColor(1.0, 0.1, 0.3, "ROSADO", "R100 G010 B030"); break;
             case 5: ConfigurarColor(0.5, 0.0, 0.5, "VIOLETA", "R050 G000 B050"); break;
             case 6: ConfigurarColor(0.0, 0.0, 1.0, "AZUL", "R000 G000 B100"); break;
             case 7: ConfigurarColor(0.0, 0.5, 1.0, "CERULEO", "R000 G050 B100"); break;
@@ -45,7 +45,7 @@ int main() {
             case 9: ConfigurarColor(0.0, 1.0, 0.5, "VERDECIAN", "R000 G100 B050"); break;
             case 10: ConfigurarColor(0.0, 1.0, 0.0, "VERDE", "R000 G100 B000"); break;
             case 11: ConfigurarColor(0.5, 1.0, 0.0, "LIMA", "R050 G100 B000"); break;
-            case 12: ConfigurarColor(1.0, 1.0, 1.0, "BLANCO", "R100 G100 B100"); break;
+            case 12: ConfigurarColor(1.0, 0.5, 0.4, "BLANCO", "R100 G050 B040"); break;
             case 13: ConfigurarColor(0.0, 0.0, 0.0, "NEGRO", "R000 G000 B000"); Color = 0; break; // Ausencia de luz
             default: Color = 0; break;
         }
@@ -116,7 +116,7 @@ void LIMPIAR() {
 
 void Mensaje() {
     R_I(128); // Inicio de LCD
-    const char* msg1 = "Sistem RGB Ready";
+    const char* msg1 = "System RGB Ready";
     const char* msg2 = "Carlos y Michael";
     uint8_t LONGITUD = sprintf(CADENA, "%s", msg1);
     for (uint8_t i = 0; i < LONGITUD; i++) {
