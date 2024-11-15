@@ -1,0 +1,114 @@
+#include "mbed.h"
+
+// Configuración de pines
+InterruptIn sensorQRE(PC_14);           // Sensor QRE1114 conectado a PC_14
+Timeout timeout;                        // Timeout para evitar múltiples conteos
+PwmOut motorControl(PB_1);              // PWM para controlar la velocidad del motor
+DigitalOut in1(PA_4);                   // Pin IN1 del puente H
+DigitalOut in2(PA_5);                   // Pin IN2 del puente H
+BufferedSerial bluetooth(PA_2, PA_3);   // Bluetooth HC-05 conectado a PA_2 (TX) y PA_3 (RX)
+
+// Variables
+volatile int rpmCount = 0;
+int currentRPM = 0;
+int speedLevel = 0;                     // Nivel de velocidad (1 a 10)
+int speedLevels[10] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Porcentaje de PWM para cada nivel
+
+// Prototipos de funciones
+void handleSensorInterrupt();
+void calculateRPM();
+void adjustMotorSpeed(int level);
+void startMotor(bool direction);
+void stopMotor();
+
+int main() {
+    // Configuración inicial
+    sensorQRE.fall(&handleSensorInterrupt); // Detectar flanco descendente en el sensor QRE1114
+    motorControl.period(0.02f);             // Periodo del PWM a 20 ms (50 Hz)
+    stopMotor();                            // Inicia con el motor apagado
+
+    // Configuración del puerto serial Bluetooth
+    bluetooth.set_baud(9600);
+
+    // Bucle principal
+    while (true) {
+        // Calcular las RPM cada segundo
+        ThisThread::sleep_for(1s);
+        calculateRPM();
+        
+        // Enviar las RPM actuales al Bluetooth
+        char buffer[32];
+        int length = sprintf(buffer, "RPM: %d\n", currentRPM);
+        bluetooth.write(buffer, length);
+
+        // Leer datos del Bluetooth para ajustar la velocidad o dirección
+        if (bluetooth.readable()) {
+            char command;
+            bluetooth.read(&command, 1);
+
+            if (command == 'F') {
+                startMotor(true);  // Encender motor en dirección hacia adelante
+            } 
+            else if (command == 'R') {
+                startMotor(false); // Encender motor en dirección inversa
+            }
+            else if (command == 'S') {
+                stopMotor();       // Apagar el motor
+            }
+            else if (command >= '1' && command <= '9') {
+                speedLevel = command - '1'; // Convierte '1'-'9' a índice 0-8
+                adjustMotorSpeed(speedLevel);
+            } 
+            else if (command == '0') {
+                speedLevel = 9; // Nivel máximo, correspondiente al índice 9 en el array
+                adjustMotorSpeed(speedLevel);
+            }
+        }
+    }
+}
+
+// Manejo de interrupción para el sensor QRE1114
+void handleSensorInterrupt() {
+    timeout.attach([]{ rpmCount++; }, 8ms); // Incrementa el conteo de revoluciones
+}
+
+// Calcular las RPM en función del conteo
+void calculateRPM() {
+    currentRPM = rpmCount * 3;   // Ajuste según características del sensor y motor
+    rpmCount = 0;                // Reiniciar el conteo
+}
+
+// Ajusta la velocidad del motor de acuerdo al nivel de velocidad
+void adjustMotorSpeed(int level) {
+    if (level >= 0 && level < 10) {
+        motorControl.write(speedLevels[level] / 100.0f); // Establece el duty cycle de PWM
+        char buffer[32];
+        int length = sprintf(buffer, "Velocidad ajustada a nivel %d\n", level + 1);
+        bluetooth.write(buffer, length);
+    }
+}
+
+// Función para iniciar el motor en una dirección específica
+void startMotor(bool direction) {
+    if (direction) {
+        in1 = 1;
+        in2 = 0; // Dirección hacia adelante
+    } else {
+        in1 = 0;
+        in2 = 1; // Dirección inversa
+    }
+    adjustMotorSpeed(speedLevel); // Aplicar la velocidad actual
+    char buffer[32];
+    int length = sprintf(buffer, "Motor encendido en %s\n", direction ? "adelante" : "reversa");
+    bluetooth.write(buffer, length);
+}
+
+// Función para detener el motor
+void stopMotor() {
+    in1 = 0;
+    in2 = 0; // Apagar el motor
+    motorControl.write(0.0f); // PWM en 0 para asegurarse de que el motor esté apagado
+    char buffer[32];
+    int length = sprintf(buffer, "Motor apagado\n");
+    bluetooth.write(buffer, length);
+}
